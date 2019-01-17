@@ -4,10 +4,10 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266HTTPClient.h>
 
-const char* ssid = "It hurts when IP";
-const char* password = "niepowiem";
+const char* ssid = "BSR - Uczniowie";
+const char* password = "bednarsk@";
 const int led = 2;
-const int relayPin = 13;
+const int relayPin = 14;
 String DeviceID = "12345678";
 String FriendlyName = "SalaMatematyczna";
 String State = "ON";
@@ -15,10 +15,12 @@ String PowerUse;
 String payload;
 int LastSensorState;
 int SensorState;
-int RelayState;
+int RelayState=1;
 int SensorVal;
-String ReqVal;
+String ReqVal = "0";
 String LastReqVal;
+String TimeStamp;
+String LastTimeStamp;
 ESP8266WebServer server(80);
 
 
@@ -52,8 +54,8 @@ void ServerStart()
 {
   server.on("/", handleRoot);
   
-  server.on("/rec", []() { 
-    server.send(200, "text/plain", payload);
+  server.on("/test", []() { 
+    server.send(200, "text/plain", "działa");
    });
   server.onNotFound(handleNotFound);
   server.begin();
@@ -64,7 +66,7 @@ void ServerStart()
 
 void handleRoot() {
   digitalWrite(led, 1);
-  server.send(200, "text/html", "DeaviceID:" + DeviceID + " <br> " + "FriendlyName: " + FriendlyName + " <br> " + "State:" + SensorState + " <br> " + "PowerUse:" + PowerUse + "<br>" + "RelayState :" + RelayState);// zmienic PowerUse na SensorVal
+  server.send(200, "text/html", "DeaviceID:" + DeviceID + " <br> " + "FriendlyName: " + FriendlyName + " <br> " + "State:" + SensorState + " <br> " + "PowerUse:" + SensorVal + "<br>" + "RelayState :" + RelayState);// zmienic PowerUse na SensorVal
   digitalWrite(led, 0);
 }
 
@@ -94,7 +96,7 @@ void SendData()
   if (SensorState != LastSensorState) {
     RelayState = 1;
     String StateString = (String)SensorState;
-    String httpAdress = "http://192.168.43.207/index.php?state=" + StateString;
+    String httpAdress = "http://192.168.10.97/index.php?state=" + StateString;
     HTTPClient http;
     http.begin(httpAdress);
     Serial.println("Sending..." + httpAdress);
@@ -110,29 +112,68 @@ void SendData()
 
 void SensorRead()
 {
-  //SensorVal = getMaxValue(); // Odkomentowac 
-  LastSensorState = SensorState;// Zakomentowac
-  String SensorValStr = Serial.readString();// Zakomentowac
-  SensorVal = SensorValStr.toInt();// Zakomentowac
-  if (SensorVal != 0){ // Zakomentowac
-  PowerUse = SensorVal; // Zakomentowac
-  } // Zakomentowac
+  SensorVal = getMaxValue(); 
+  LastSensorState = SensorState;
+
   Serial.println (SensorVal);
-  if (SensorVal > 40 && SensorVal != 0) { // usunac drugi warunek
+  if (SensorVal > 40 ) {
     SensorState = 1;
   }
-  if (SensorVal < 40 && SensorVal != 0) { // usunac drugi warunek
+  if (SensorVal < 40) {
     SensorState = 0;
   }
 }
 
 
-
-
 void ReqToSwitch()
 {
+  String ReqValTemp = server.arg("state");
+  String TimeStamp = server.arg("TimeStamp");
+  Serial.println("request value :" + ReqVal);
+  Serial.println("Last request value :" + LastReqVal);
+  Serial.println("TimeStmap :" + TimeStamp);
+  Serial.println("last TimeStamp :" + LastTimeStamp);
+  
+  if(ReqVal == "ON" && TimeStamp != LastTimeStamp ) {
+    if (RelayState == 0 && SensorState == 0)
+    {
+      digitalWrite(14, LOW);
+      Serial.println("state2");
+      RelayState=1;
+    }
+    else if (RelayState == 1 && SensorState == 0)
+    {
+      digitalWrite(14, HIGH);
+      Serial.println("state1");
+      RelayState=0;  
+    }
+    
+    else if (RelayState == 0 && SensorState == 1) Serial.println("Already ON");
+    else if (RelayState == 1 && SensorState == 1) Serial.println("Already ON");
+}
 
-  String ReqVal = server.arg("state");
+
+
+if (ReqVal == "OFF" && TimeStamp != LastTimeStamp) {
+  if (RelayState == 0 && SensorState == 1)
+  {
+    digitalWrite(14, HIGH);
+    Serial.println("state2");
+    RelayState=1;
+  }
+  else if (RelayState == 1 && SensorState == 1)
+  {
+    digitalWrite(14 , LOW);
+    Serial.println("state1");
+    RelayState=0;  
+  }
+  else if (RelayState == 0 && SensorState == 0) Serial.println("Already OFF");
+  else if (RelayState == 1 && SensorState == 0) Serial.println("Already OFF");
+}
+
+
+  
+  /*
   if (ReqVal != LastReqVal){
     if (ReqVal == "ON")
     {
@@ -174,11 +215,40 @@ void ReqToSwitch()
           RelayState=1;
         }
       }
+    } */
+  
+    LastReqVal = ReqVal;
+    LastTimeStamp = TimeStamp;
+    Serial.println(" ");
+
+}
+
+
+  /*void ReqToSwitch2()
+  {
+    
+    if (ReqVal == "ON")
+    {
+       ReqSensorState = 1;
+    }else if (ReqVal == "OFF")
+    {
+      ReqSensorVal = 0;
+    }
+    
+    if (ReqSensorState != SensorState && LastReqSensorState != ReqSensorState)
+    {
+      LastReqSensorState == ReqSensorState;
+    }
+    if (SensorState != LastSensorState)
+    {
+      
     }
   }
-    LastReqVal = ReqVal;
-    Serial.println("Relay state : " + RelayState);
-}
+
+*/
+
+
+
 
 
 int getMaxValue()
@@ -186,7 +256,7 @@ int getMaxValue()
   int sensorValue;
   int sensorMax = 0;
   uint32_t start_time = millis();
-  while ((millis() - start_time) < 500)
+  while ((millis() - start_time) < 1000)
   {
     sensorValue = analogRead(A0);
     if (sensorValue > sensorMax)
@@ -203,15 +273,16 @@ void setup(void) {
   pinMode(led, OUTPUT);
   digitalWrite(led, 0);
   Serial.begin(115200);
+  pinMode(14, OUTPUT);
   WifiStart();
   ServerStart();
 }
 
 void loop(void) {
+  SensorRead();
   server.handleClient();
   SendData();
-  SensorRead();
   ReqToSwitch();
-  delay(100);
+  delay(200);
 
 }
