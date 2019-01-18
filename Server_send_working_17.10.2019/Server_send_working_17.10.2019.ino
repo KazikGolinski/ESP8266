@@ -115,10 +115,10 @@ void SensorRead()
   LastSensorState = SensorState;
 
   Serial.println (SensorVal);
-  if (SensorVal > 40 ) {
+  if (SensorVal > 70 ) {
     SensorState = 1;
   }
-  if (SensorVal < 40) {
+  if (SensorVal < 70) {
     SensorState = 0;
   }
 }
@@ -126,8 +126,8 @@ void SensorRead()
 
 void ReqToSwitch()
 {
-   ReqVal = server.arg("state");
-   TimeStamp = server.arg("TimeStamp");
+  ReqVal = server.arg("state");
+  TimeStamp = server.arg("TimeStamp");
   Serial.println("request value :" + ReqVal);
   //Serial.println("Last request value :" + LastReqVal);
   Serial.println("TimeStmap :" + TimeStamp);
@@ -170,81 +170,12 @@ if (ReqVal == "OFF" && TimeStamp != LastTimeStamp) {
   else if (RelayState == 1 && SensorState == 0) Serial.println("Already OFF");
 }
 
-
-  
-  /*
-  if (ReqVal != LastReqVal){
-    if (ReqVal == "ON")
-    {
-      if (SensorState == 1){
-        Serial.println("already ON");
-      }
-      if (SensorState == 0)
-      {
-        if (RelayState == 1) 
-        {
-          digitalWrite(relayPin , LOW);
-          Serial.println("state1");
-          RelayState=0;
-        }else
-        {
-          digitalWrite(relayPin, HIGH);
-          Serial.println("state2");
-          RelayState=1;
-        }
-      }
-    }
-  
-    if (ReqVal == "OFF")
-    {
-      if (SensorState == 0){
-        Serial.println("already OFF");
-      }
-      if (SensorState == 1)
-      {
-        if (RelayState == 1) 
-        {
-          digitalWrite(relayPin , LOW);
-          RelayState=0;
-          Serial.println("state1");
-        }else
-        {
-          digitalWrite(relayPin, HIGH);
-          Serial.println("state2");
-          RelayState=1;
-        }
-      }
-    } */
-  
-    LastReqVal = ReqVal;
-    LastTimeStamp = TimeStamp;
-    Serial.println(" ");
+LastReqVal = ReqVal;
+LastTimeStamp = TimeStamp;
+Serial.println(" ");
 
 }
 
-
-  /*void ReqToSwitch2()
-  {
-    
-    if (ReqVal == "ON")
-    {
-       ReqSensorState = 1;
-    }else if (ReqVal == "OFF")
-    {
-      ReqSensorVal = 0;
-    }
-    
-    if (ReqSensorState != SensorState && LastReqSensorState != ReqSensorState)
-    {
-      LastReqSensorState == ReqSensorState;
-    }
-    if (SensorState != LastSensorState)
-    {
-      
-    }
-  }
-
-*/
 
 
 
@@ -282,6 +213,4 @@ void loop(void) {
   SensorRead();
   SendData();
   ReqToSwitch();
-  delay(50);
-
 }
